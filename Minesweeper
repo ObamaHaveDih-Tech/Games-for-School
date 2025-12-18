@@ -1,3 +1,4 @@
+<!-- Paste this to a html complier -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -107,23 +108,45 @@
   <div class="game">
     <h1>Minesweeper</h1>
     <div class="top">
-      <div>Mines: <span id="mineCount"></span></div>
+      <div>
+        Difficulty:
+        <select id="difficulty">
+          <option value="10">Easy</option>
+          <option value="15">Medium</option>
+          <option value="20">Hard</option>
+        </select>
+      </div>
+      <button onclick="startGame()">Restart</button>
+    </div>
       <button onclick="startGame()">Restart</button>
     </div>
     <div id="grid" class="grid"></div>
   </div>
 
   <script>
-    const SIZE = 9;
-    const MINES = 10;
+    // ===============================
+// GAME CONFIGURATION
+// ===============================
 
-    const gridEl = document.getElementById("grid");
-    const mineCountEl = document.getElementById("mineCount");
+// Grid size (9x9)
+const SIZE = 9;
 
-    let cells = [];
-    let gameOver = false;
+// Default mine count (will change with difficulty)
+let MINES = 10;
 
-    function startGame() {
+const gridEl = document.getElementById("grid");
+const mineCountEl = document.getElementById("mineCount");
+
+// Stores all cell data
+let cells = [];
+
+// Prevents input after win/lose
+let gameOver = false;
+
+    // Starts or restarts the game
+function startGame() {
+      // Read difficulty selection
+      MINES = Number(document.getElementById("difficulty").value);
       gameOver = false;
       cells = [];
       gridEl.innerHTML = "";
