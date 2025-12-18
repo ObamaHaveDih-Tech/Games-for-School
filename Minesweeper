@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minesweeper</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --cell: #1f2933;
+      --cell-open: #020617;
+      --accent: #38bdf8;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #020617, var(--bg));
+      color: white;
+    }
+
+    .game {
+      background: var(--panel);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.5);
+      width: max-content;
+    }
+
+    h1 {
+      text-align: center;
+      margin: 0 0 12px;
+      font-size: 22px;
+      color: var(--accent);
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    button {
+      background: var(--accent);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .grid {
+      display: grid;
+      gap: 4px;
+      user-select: none;
+    }
+
+    .cell {
+      width: 34px;
+      height: 34px;
+      background: var(--cell);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .cell.open {
+      background: var(--cell-open);
+      cursor: default;
+    }
+
+    .cell.mine {
+      background: var(--danger);
+    }
+
+    .cell.flag::after {
+      content: "🚩";
+      font-size: 16px;
+    }
+
+    .cell.n1 { color: #38bdf8; }
+    .cell.n2 { color: #4ade80; }
+    .cell.n3 { color: #facc15; }
+    .cell.n4 { color: #fb7185; }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <h1>Minesweeper</h1>
+    <div class="top">
+      <div>Mines: <span id="mineCount"></span></div>
+      <button onclick="startGame()">Restart</button>
+    </div>
+    <div id="grid" class="grid"></div>
+  </div>
+
+  <script>
+    const SIZE = 9;
+    const MINES = 10;
+
+    const gridEl = document.getElementById("grid");
+    const mineCountEl = document.getElementById("mineCount");
+
+    let cells = [];
+    let gameOver = false;
+
+    function startGame() {
+      gameOver = false;
+      cells = [];
+      gridEl.innerHTML = "";
+      gridEl.style.gridTemplateColumns = `repeat(${SIZE}, 34px)`;
+      mineCountEl.textContent = MINES;
+
+      // create cells
+      for (let i = 0; i < SIZE * SIZE; i++) {
+        cells.push({
+          mine: false,
+          open: false,
+          flag: false,
+          count: 0
+        });
+      }
+
+      // place mines
+      let placed = 0;
+      while (placed < MINES) {
+        const i = Math.floor(Math.random() * cells.length);
+        if (!cells[i].mine) {
+          cells[i].mine = true;
+          placed++;
+        }
+      }
+
+      // calculate numbers
+      for (let i = 0; i < cells.length; i++) {
+        if (cells[i].mine) continue;
+        cells[i].count = neighbors(i).filter(n => cells[n].mine).length;
+      }
+
+      // render
+      cells.forEach((_, i) => {
+        const div = document.createElement("div");
+        div.className = "cell";
+        div.oncontextmenu = e => {
+          e.preventDefault();
+          toggleFlag(i);
+        };
+        div.onclick = () => openCell(i);
+        gridEl.appendChild(div);
+      });
+    }
+
+    function neighbors(i) {
+      const x = i % SIZE;
+      const y = Math.floor(i / SIZE);
+      const result = [];
+
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE) {
+            result.push(ny * SIZE + nx);
+          }
+        }
+      }
+      return result;
+    }
+
+    function openCell(i) {
+      if (gameOver) return;
+      const cell = cells[i];
+      const el = gridEl.children[i];
+      if (cell.open || cell.flag) return;
+
+      cell.open = true;
+      el.classList.add("open");
+
+      if (cell.mine) {
+        el.classList.add("mine");
+        el.textContent = "💣";
+        revealMines();
+        alert("Game Over");
+        gameOver = true;
+        return;
+      }
+
+      if (cell.count > 0) {
+        el.textContent = cell.count;
+        el.classList.add("n" + cell.count);
+      } else {
+        neighbors(i).forEach(openCell);
+      }
+
+      checkWin();
+    }
+
+    function toggleFlag(i) {
+      if (gameOver) return;
+      const cell = cells[i];
+      const el = gridEl.children[i];
+      if (cell.open) return;
+
+      cell.flag = !cell.flag;
+      el.classList.toggle("flag", cell.flag);
+    }
+
+    function revealMines() {
+      cells.forEach((c, i) => {
+        if (c.mine) {
+          const el = gridEl.children[i];
+          el.classList.add("mine");
+          el.textContent = "💣";
+        }
+      });
+    }
+
+    function checkWin() {
+      const won = cells.every(c => c.open || c.mine);
+      if (won) {
+        alert("You Win! 🎉");
+        gameOver = true;
+      }
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
